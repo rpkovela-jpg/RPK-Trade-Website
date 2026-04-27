@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPK Algorithmic Trading System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="fas fa-chart-line"></i> RPK Trading System</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#analyzer">Analyzer</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#screener">Screener</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#portfolio">Portfolio</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid">
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section-padding">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="page-title"><i class="fas fa-tachometer-alt"></i> Trading Dashboard</h1>
+                    <p class="text-muted">Monitor stocks for 1x-4x+ return opportunities with intelligent exit strategies</p>
+                </div>
+            </div>
+
+            <!-- Trending Stocks -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card card-custom">
+                        <div class="card-header card-header-custom">
+                            <h5 class="mb-0"><i class="fas fa-fire"></i> Trending Stocks</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="trendingContainer" class="row" style="min-height: 150px;">
+                                <div class="text-center w-100 my-5">
+                                    <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screener Results -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card card-custom">
+                        <div class="card-header card-header-custom">
+                            <h5 class="mb-0"><i class="fas fa-search"></i> Stock Screener Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="screenerContainer" style="min-height: 300px;">
+                                <div class="text-center my-5">
+                                    <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analyzer Section -->
+        <section id="analyzer" class="section-padding">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="page-title"><i class="fas fa-microscope"></i> Stock Analyzer</h1>
+                </div>
+            </div>
+
+            <!-- Stock Search Form -->
+            <div class="row mb-4">
+                <div class="col-lg-12">
+                    <div class="card card-custom">
+                        <div class="card-header card-header-custom">
+                            <h5 class="mb-0">Analyze a Stock</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Stock Symbol</label>
+                                    <input type="text" class="form-control" id="stockSymbol" placeholder="e.g., AAPL" value="AAPL">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Period</label>
+                                    <select class="form-select" id="analysisPeriod">
+                                        <option value="3mo">3 Months</option>
+                                        <option value="6mo">6 Months</option>
+                                        <option value="1y" selected>1 Year</option>
+                                        <option value="2y">2 Years</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button class="btn btn-primary w-100" onclick="analyzeStock()">
+                                        <i class="fas fa-search"></i> Analyze
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Results -->
+            <div class="row mb-4" id="analysisResults" style="display: none;">
+                <div class="col-lg-12">
+                    <div class="card card-custom">
+                        <div class="card-header card-header-custom">
+                            <h5 class="mb-0" id="analyzeSymbol">Stock Analysis</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-4">
+                                <!-- Current Price -->
+                                <div class="col-md-3">
+                                    <div class="stat-box">
+                                        <label>Current Price</label>
+                                        <p id="currentPrice" class="stat-value">-</p>
+                                    </div>
+                                </div>
+                                <!-- Daily Change -->
+                                <div class="col-md-3">
+                                    <div class="stat-box">
+                                        <label>Daily Change</label>
+                                        <p id="dailyChange" class="stat-value">-</p>
+                                    </div>
+                                </div>
+                                <!-- Signal -->
+                                <div class="col-md-3">
+                                    <div class="stat-box">
+                                        <label>Signal</label>
+                                        <p id="signal" class="stat-value signal-neutral">-</p>
+                                    </div>
+                                </div>
+                                <!-- Momentum -->
+                                <div class="col-md-3">
+                                    <div class="stat-box">
+                                        <label>Momentum (RSI)</label>
+                                        <p id="momentum" class="stat-value">-</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Technical Indicators -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="mb-3">Technical Indicators</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped">
+                                            <tbody>
+                                                <tr>
+                                                    <td><strong>SMA 20</strong></td>
+                                                    <td id="sma20">-</td>
+                                                    <td><strong>SMA 50</strong></td>
+                                                    <td id="sma50">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>RSI</strong></td>
+                                                    <td id="rsi">-</td>
+                                                    <td><strong>MACD</strong></td>
+                                                    <td id="macd">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Bollinger Upper</strong></td>
+                                                    <td id="bbUpper">-</td>
+                                                    <td><strong>Bollinger Lower</strong></td>
+                                                    <td id="bbLower">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>ATR</strong></td>
+                                                    <td id="atr">-</td>
+                                                    <td><strong>Price Momentum (5d)</strong></td>
+                                                    <td id="priceMotum">-</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Individual Signals -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="mb-3">Individual Indicator Signals</h6>
+                                    <div class="row" id="signalDetails"></div>
+                                </div>
+                            </div>
+
+                            <!-- Stock Info -->
+                            <div class="row">
+                                <div class="col-12">
+                                    <h6 class="mb-3">Stock Information</h6>
+                                    <div id="stockInfo"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Exit Strategy Section -->
+        <section id="exit-strategy" class="section-padding">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="page-title"><i class="fas fa-map-signs"></i> Exit Strategy Planner</h1>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-lg-6">
+                    <div class="card card-custom">
+                        <div class="card-header card-header-custom">
+                            <h5 class="mb-0">Plan Your Exit</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Entry Price ($)</label>
+                                <input type="number" class="form-control" id="entryPrice" placeholder="0.00" step="0.01">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Current Price ($)</label>
+                                <input type="number" class="form-control" id="currentExitPrice" placeholder="0.00" step="0.01">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Quantity to Buy</label>
+                                <input type="number" class="form-control" id="quantity" placeholder="0" step="1">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Capital Allocated ($)</label>
+                                <input type="number" class="form-control" id="capital" placeholder="0.00" step="0.01">
+                            </div>
+                            <button class="btn btn-success w-100" onclick="planExit()">
+                                <i class="fas fa-calculator"></i> Generate Exit Plan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6" id="exitPlanResults" style="display: none;">
+                    <div class="card card-custom">
+                        <div class="card-header card-header-custom">
+                            <h5 class="mb-0">Exit Plan Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="exitPlanContent"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Exit Plans -->
+            <div class="row" id="exitPlansDetails" style="display: none;">
+                <div class="col-lg-6" id="pyramidingDiv" style="display: none;">
+                    <div class="card card-custom">
+                        <div class="card-header card-header-custom">
+                            <h5 class="mb-0"><i class="fas fa-layer-group"></i> Pyramiding Strategy</h5>
+                        </div>
+                        <div class="card-body" id="pyramidingContent"></div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6" id="scalingDiv" style="display: none;">
+                    <div class="card card-custom">
+                        <div class="card-header card-header-custom">
+                            <h5 class="mb-0"><i class="fas fa-arrow-up"></i> Scaling Out Strategy</h5>
+                        </div>
+                        <div class="card-body" id="scalingContent"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Screener Section -->
+        <section id="screener" class="section-padding">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="page-title"><i class="fas fa-filter"></i> Advanced Stock Screener</h1>
+                    <p class="text-muted">Find stocks with 1x-4x+ return potential</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card card-custom">
+                        <div class="card-header card-header-custom">
+                            <h5 class="mb-0">Screening Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="advancedScreenerContainer"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Portfolio Section -->
+        <section id="portfolio" class="section-padding">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h1 class="page-title"><i class="fas fa-briefcase"></i> My Portfolio</h1>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-lg-3">
+                    <div class="card card-custom">
+                        <div class="card-body">
+                            <label>Total Capital</label>
+                            <p class="stat-value">$0.00</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="card card-custom">
+                        <div class="card-body">
+                            <label>Total Returns</label>
+                            <p class="stat-value text-success">+$0.00</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="card card-custom">
+                        <div class="card-body">
+                            <label>Return %</label>
+                            <p class="stat-value text-success">+0.00%</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="card card-custom">
+                        <div class="card-body">
+                            <label>Holdings</label>
+                            <p class="stat-value">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card card-custom">
+                        <div class="card-header card-header-custom">
+                            <h5 class="mb-0">Buy/Sell Interface</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h6>Buy Stocks</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Symbol</label>
+                                        <input type="text" class="form-control" id="buySymbol" placeholder="e.g., AAPL">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Quantity</label>
+                                        <input type="number" class="form-control" id="buyQty" placeholder="0" step="1">
+                                    </div>
+                                    <button class="btn btn-success w-100" onclick="simulateBuy()">
+                                        <i class="fas fa-shopping-cart"></i> Buy
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Sell Stocks</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Symbol</label>
+                                        <input type="text" class="form-control" id="sellSymbol" placeholder="e.g., AAPL">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Quantity</label>
+                                        <input type="number" class="form-control" id="sellQty" placeholder="0" step="1">
+                                    </div>
+                                    <button class="btn btn-danger w-100" onclick="simulateSell()">
+                                        <i class="fas fa-money-bill-wave"></i> Sell
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="portfolioTable"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>RPK Algorithmic Trading System</h6>
+                    <p class="text-muted small">Advanced stock analysis with exit strategy planning</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="text-muted small">
+                        <strong>Disclaimer:</strong> This is for educational purposes. Always consult financial advisors before trading.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
