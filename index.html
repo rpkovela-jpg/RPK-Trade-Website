@@ -64,10 +64,8 @@
             margin: 20px 0;
         }
 
-        .chart-container {
-            position: relative;
-            height: 400px;
-            margin: 20px 0;
+        .loading {
+            display: inline-block;
         }
     </style>
 </head>
@@ -266,27 +264,136 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.js"></script>
     <script>
-        // Base API URL - adjust if your backend is on a different server
-        const API_BASE_URL = '/api';
+        // Detect if backend is running
+        const BACKEND_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:5000'
+            : `${window.location.protocol}//${window.location.host}`;
+        
+        let backendAvailable = false;
+
+        // Check backend availability on page load
+        async function checkBackendStatus() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/health`, { mode: 'no-cors' });
+                backendAvailable = true;
+                console.log('✅ Backend server is available');
+            } catch (error) {
+                backendAvailable = false;
+                console.log('⚠️ Backend server not available - using demo mode');
+            }
+        }
 
         // Stock Analyzer
         document.getElementById('analyzerForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const symbol = document.getElementById('stockSymbol').value;
+            const symbol = document.getElementById('stockSymbol').value.toUpperCase();
             const period = document.getElementById('period').value;
             const interval = document.getElementById('interval').value;
 
+            const resultsDiv = document.getElementById('analysisResults');
+            resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
             try {
-                // For static version, show a demo response
-                showAnalysisDemo(symbol);
+                if (backendAvailable) {
+                    // Try to get real data from backend
+                    const response = await fetch(`${BACKEND_URL}/api/stock/analyze`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ symbol, period, interval })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        displayAnalysisResults(symbol, data);
+                    } else {
+                        throw new Error('Backend returned error');
+                    }
+                } else {
+                    throw new Error('Backend not available');
+                }
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('analysisResults').innerHTML = 
-                    `<div class="alert alert-danger">Error analyzing stock. Make sure the backend is running.</div>`;
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-warning">
+                        <h5>Analysis Results for ${symbol}</h5>
+                        <p><i class="fas fa-info-circle"></i> <strong>Backend not available</strong></p>
+                        <p class="small mb-0">To see real analysis, make sure your backend server is running at ${BACKEND_URL}</p>
+                        <hr>
+                        <p class="mb-0"><strong>To start the backend:</strong></p>
+                        <code>cd backend && python run.py</code>
+                    </div>
+                `;
             }
         });
+
+        // Display real analysis results
+        function displayAnalysisResults(symbol, data) {
+            const signal = data.signal || 'NEUTRAL';
+            const signalClass = signal.includes('BUY') ? 'badge-buy' : signal.includes('SELL') ? 'badge-sell' : 'badge-neutral';
+            
+            let html = `
+                <div class="alert alert-success">
+                    <h5><i class="fas fa-check-circle"></i> Analysis Results for ${symbol}</h5>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>Trading Signal</h6>
+                                <h4><span class="badge ${signalClass}">${signal}</span></h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>Current Price</h6>
+                                <h4>$${(data.stock_info?.current_price || 0).toFixed(2)}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>52-Week High</h6>
+                                <h4>$${(data.stock_info?.fifty_two_week_high || 0).toFixed(2)}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>Technical Indicators</h6>
+                                <ul class="small mb-0">
+                                    <li>SMA 20: $${(data.indicators?.sma_20 || 0).toFixed(2)}</li>
+                                    <li>SMA 50: $${(data.indicators?.sma_50 || 0).toFixed(2)}</li>
+                                    <li>RSI(14): ${(data.indicators?.rsi || 0).toFixed(1)}</li>
+                                    <li>MACD: ${data.indicators?.macd_signal || 'N/A'}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6>Momentum</h6>
+                                <ul class="small mb-0">
+                                    <li>Price Momentum: ${(data.momentum?.price_momentum || 0).toFixed(2)}%</li>
+                                    <li>RSI Momentum: ${data.momentum?.rsi_momentum || 'N/A'}</li>
+                                    <li>Volume Trend: ${data.momentum?.volume_trend || 'N/A'}</li>
+                                    <li>Trend Direction: ${data.momentum?.trend_direction || 'N/A'}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('analysisResults').innerHTML = html;
+        }
 
         // Exit Strategy Planner
         document.getElementById('exitForm')?.addEventListener('submit', (e) => {
@@ -344,76 +451,34 @@
 
         // Load Screener Results
         document.getElementById('loadScreener')?.addEventListener('click', async () => {
-            showScreenerDemo();
+            const resultsDiv = document.getElementById('screenerResults');
+            resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            try {
+                if (backendAvailable) {
+                    const response = await fetch(`${BACKEND_URL}/api/stock/screener`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        displayScreenerResults(data);
+                    } else {
+                        throw new Error('Failed to fetch screener data');
+                    }
+                } else {
+                    throw new Error('Backend not available');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-warning">
+                        <p><i class="fas fa-info-circle"></i> Screener data not available</p>
+                        <p class="small mb-0">Start the backend server to see live screener results</p>
+                    </div>
+                `;
+            }
         });
 
-        // Demo data functions
-        function showAnalysisDemo(symbol) {
-            const html = `
-                <div class="alert alert-success">
-                    <h5>Analysis Results for ${symbol}</h5>
-                    <p><strong>Note:</strong> To see real analysis, run the backend server at http://localhost:5000</p>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-body">
-                                <h6>Trading Signal</h6>
-                                <h4><span class="badge badge-buy">STRONG_BUY</span></h4>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-body">
-                                <h6>Current Price</h6>
-                                <h4>$150.25</h4>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-body">
-                                <h6>52-Week High</h6>
-                                <h4>$175.50</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h6>Technical Indicators</h6>
-                                <ul class="small mb-0">
-                                    <li>SMA 20: $148.50</li>
-                                    <li>SMA 50: $142.30</li>
-                                    <li>RSI(14): 65.2</li>
-                                    <li>MACD: Bullish</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h6>Momentum</h6>
-                                <ul class="small mb-0">
-                                    <li>Price Momentum: +12.3%</li>
-                                    <li>RSI Momentum: Positive</li>
-                                    <li>Volume Trend: Increasing</li>
-                                    <li>Trend Direction: Uptrend</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.getElementById('analysisResults').innerHTML = html;
-        }
-
-        function showScreenerDemo() {
-            const html = `
+        function displayScreenerResults(data) {
+            let html = `
                 <table class="table table-dark table-hover">
                     <thead>
                         <tr>
@@ -425,46 +490,26 @@
                         </tr>
                     </thead>
                     <tbody>
+            `;
+
+            if (data.stocks && Array.isArray(data.stocks)) {
+                data.stocks.forEach(stock => {
+                    const signalClass = stock.signal.includes('BUY') ? 'badge-buy' : stock.signal.includes('SELL') ? 'badge-sell' : 'badge-neutral';
+                    html += `
                         <tr>
-                            <td><strong>AAPL</strong></td>
-                            <td>$180.45</td>
-                            <td><span class="badge badge-buy">STRONG_BUY</span></td>
-                            <td>+15.2%</td>
-                            <td>$195.30</td>
+                            <td><strong>${stock.symbol}</strong></td>
+                            <td>$${stock.price.toFixed(2)}</td>
+                            <td><span class="badge ${signalClass}">${stock.signal}</span></td>
+                            <td>${stock.momentum}%</td>
+                            <td>$${stock.high_52week.toFixed(2)}</td>
                         </tr>
-                        <tr>
-                            <td><strong>MSFT</strong></td>
-                            <td>$420.30</td>
-                            <td><span class="badge badge-buy">BUY</span></td>
-                            <td>+8.7%</td>
-                            <td>$445.60</td>
-                        </tr>
-                        <tr>
-                            <td><strong>NVDA</strong></td>
-                            <td>$875.50</td>
-                            <td><span class="badge badge-neutral">NEUTRAL</span></td>
-                            <td>+2.1%</td>
-                            <td>$920.00</td>
-                        </tr>
-                        <tr>
-                            <td><strong>TSLA</strong></td>
-                            <td>$245.20</td>
-                            <td><span class="badge badge-sell" style="background-color: #dc2626;">SELL</span></td>
-                            <td>-5.3%</td>
-                            <td>$280.50</td>
-                        </tr>
-                        <tr>
-                            <td><strong>GOOGL</strong></td>
-                            <td>$142.80</td>
-                            <td><span class="badge badge-buy">STRONG_BUY</span></td>
-                            <td>+18.9%</td>
-                            <td>$165.40</td>
-                        </tr>
+                    `;
+                });
+            }
+
+            html += `
                     </tbody>
                 </table>
-                <p class="small text-muted mt-3">
-                    <i class="fas fa-info-circle"></i> This is demo data. For real screener results, run the backend server.
-                </p>
             `;
             document.getElementById('screenerResults').innerHTML = html;
         }
@@ -480,9 +525,9 @@
             });
         });
 
-        // Load screener demo on page load
+        // Check backend on page load
         document.addEventListener('DOMContentLoaded', () => {
-            showScreenerDemo();
+            checkBackendStatus();
         });
     </script>
 </body>
